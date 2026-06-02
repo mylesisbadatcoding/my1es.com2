@@ -2,81 +2,129 @@ import { useState, useRef } from 'react'
 import { Tldraw } from 'tldraw'
 import 'tldraw/tldraw.css'
 
-const PASSWORD = 'butt'
+const PASSWORD = 'butthole'
+const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN
+const REPO = 'mylesisbadatcoding/my1es.com2'
+const FILE_PATH = 'public/canvas.json'
+
+async function loadCanvasFromGitHub() {
+  const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+    headers: { Authorization: `Bearer ${GITHUB_TOKEN}` }
+  })
+  const data = await res.json()
+  const content = JSON.parse(atob(data.content))
+  return { snapshot: content, sha: data.sha }
+}
+
+async function saveCanvasToGitHub(snapshot, sha) {
+  const content = btoa(JSON.stringify(snapshot))
+  await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `Bearer ${GITHUB_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      message: 'update canvas',
+      content,
+      sha,
+    })
+  })
+}
 
 export default function App() {
   const [authed, setAuthed] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [input, setInput] = useState('')
   const [error, setError] = useState(false)
+  const [saving, setSaving] = useState(false)
   const editorRef = useRef(null)
+  const shaRef = useRef(null)
+
+  async function handleMount(editor) {
+    editorRef.current = editor
+    editor.updateInstanceState({ isReadonly: true })
+
+    const { snapshot, sha } = await loadCanvasFromGitHub()
+    shaRef.current = sha
+    if (snapshot && Object.keys(snapshot).length > 0) {
+      editor.loadSnapshot(snapshot)
+    }
+
+    editor.zoomToFit()
+  }
 
   function handleLogin() {
     if (input === PASSWORD) {
       setAuthed(true)
       setShowLogin(false)
       setError(false)
-      // Directly tell the editor to leave readonly mode
-      if (editorRef.current) {
-        editorRef.current.updateInstanceState({ isReadonly: false })
-      }
+      editorRef.current?.updateInstanceState({ isReadonly: false })
     } else {
       setError(true)
     }
   }
 
+  async function handleSave() {
+    setSaving(true)
+    const snapshot = editorRef.current.getSnapshot()
+    await saveCanvasToGitHub(snapshot, shaRef.current)
+    // Refresh SHA after save
+    const { sha } = await loadCanvasFromGitHub()
+    shaRef.current = sha
+    setSaving(false)
+  }
+
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
-
       <Tldraw
         persistenceKey="my1es-canvas"
         licenseKey={import.meta.env.VITE_TLDRAW_LICENSE_KEY}
-        onMount={(editor) => {
-          editorRef.current = editor
-          editor.updateInstanceState({ isReadonly: true })
-        }}
+        onMount={handleMount}
       />
 
+      {/* Edit button */}
       {!authed && !showLogin && (
         <button
           onClick={() => setShowLogin(true)}
           style={{
-            position: 'fixed',
-            bottom: 16,
-            right: 16,
-            zIndex: 1000,
-            padding: '6px 12px',
-            fontSize: 12,
-            opacity: 0.4,
-            cursor: 'pointer',
-            background: '#000',
-            color: '#fff',
-            border: 'none',
-            borderRadius: 6,
+            position: 'fixed', bottom: 16, right: 16, zIndex: 1000,
+            padding: '6px 12px', fontSize: 12, opacity: 0.4,
+            cursor: 'pointer', background: '#000', color: '#fff',
+            border: 'none', borderRadius: 6,
           }}
         >
           edit
         </button>
       )}
 
+      {/* Save button */}
+      {authed && (
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            position: 'fixed', bottom: 16, left: 16, zIndex: 1000,
+            padding: '6px 12px', fontSize: 12,
+            cursor: 'pointer', background: '#000', color: '#fff',
+            border: 'none', borderRadius: 6,
+            opacity: saving ? 0.5 : 1,
+          }}
+        >
+          {saving ? 'saving...' : 'save'}
+        </button>
+      )}
+
+      {/* Login overlay */}
       {showLogin && (
         <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
+          position: 'fixed', inset: 0, zIndex: 1000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           background: 'rgba(0,0,0,0.4)',
         }}>
           <div style={{
-            background: '#fff',
-            padding: 24,
-            borderRadius: 12,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 12,
-            minWidth: 240,
+            background: '#fff', padding: 24, borderRadius: 12,
+            display: 'flex', flexDirection: 'column', gap: 12, minWidth: 240,
           }}>
             <input
               autoFocus
@@ -95,7 +143,6 @@ export default function App() {
           </div>
         </div>
       )}
-
     </div>
   )
 }
