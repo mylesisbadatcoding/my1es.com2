@@ -1,20 +1,25 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Tldraw } from 'tldraw'
 import 'tldraw/tldraw.css'
 
-const PASSWORD = 'your-password-here'
+const PASSWORD = 'butt'
 
 export default function App() {
   const [authed, setAuthed] = useState(false)
   const [showLogin, setShowLogin] = useState(false)
   const [input, setInput] = useState('')
   const [error, setError] = useState(false)
+  const editorRef = useRef(null)
 
   function handleLogin() {
     if (input === PASSWORD) {
       setAuthed(true)
       setShowLogin(false)
       setError(false)
+      // Directly tell the editor to leave readonly mode
+      if (editorRef.current) {
+        editorRef.current.updateInstanceState({ isReadonly: false })
+      }
     } else {
       setError(true)
     }
@@ -23,18 +28,15 @@ export default function App() {
   return (
     <div style={{ position: 'fixed', inset: 0 }}>
 
-      {/* Canvas — read-only for visitors, full editor when authed */}
       <Tldraw
         persistenceKey="my1es-canvas"
         licenseKey={import.meta.env.VITE_TLDRAW_LICENSE_KEY}
         onMount={(editor) => {
-          if (!authed) {
-            editor.updateInstanceState({ isReadonly: true })
-          }
+          editorRef.current = editor
+          editor.updateInstanceState({ isReadonly: true })
         }}
       />
 
-      {/* Small login button in bottom-right corner */}
       {!authed && !showLogin && (
         <button
           onClick={() => setShowLogin(true)}
@@ -57,7 +59,6 @@ export default function App() {
         </button>
       )}
 
-      {/* Login overlay */}
       {showLogin && (
         <div style={{
           position: 'fixed',
