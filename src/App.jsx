@@ -12,12 +12,12 @@ async function loadCanvasFromGitHub() {
     headers: { Authorization: `Bearer ${GITHUB_TOKEN}` }
   })
   const data = await res.json()
-  const content = JSON.parse(atob(data.content))
+  const content = JSON.parse(decodeURIComponent(escape(atob(data.content))))
   return { snapshot: content, sha: data.sha }
 }
 
 async function saveCanvasToGitHub(snapshot, sha) {
-  const content = btoa(JSON.stringify(snapshot))
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(snapshot))))
   await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
     method: 'PUT',
     headers: {
