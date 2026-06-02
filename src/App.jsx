@@ -86,7 +86,7 @@ export default function App() {
       editor.loadSnapshot(snapshot)
     }
 
-    editor.zoomToFit()
+    editor.setCamera({ x: 0, y: 0, z: 1 })
   }
 
   function handleLogin() {
