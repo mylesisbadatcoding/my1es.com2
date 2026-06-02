@@ -4,8 +4,23 @@ import 'tldraw/tldraw.css'
 
 const PASSWORD = 'butthole'
 const GITHUB_TOKEN = import.meta.env.VITE_GITHUB_TOKEN
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+const CLOUDINARY_UPLOAD_PRESET = 'tldraw_assets'
 const REPO = 'mylesisbadatcoding/my1es.com2'
 const FILE_PATH = 'public/canvas.json'
+
+async function uploadImageToCloudinary(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET)
+
+  const res = await fetch(
+    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+    { method: 'POST', body: formData }
+  )
+  const data = await res.json()
+  return data.secure_url
+}
 
 async function loadCanvasFromGitHub() {
   const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
@@ -45,6 +60,26 @@ export default function App() {
     editorRef.current = editor
     editor.updateInstanceState({ isReadonly: true })
 
+    // Override asset uploads to use Cloudinary
+    editor.registerExternalAssetHandler('file', async ({ file }) => {
+      const url = await uploadImageToCloudinary(file)
+      return {
+        id: `asset:${Date.now()}`,
+        typeName: 'asset',
+        type: 'image',
+        props: {
+          name: file.name,
+          src: url,
+          w: 0,
+          h: 0,
+          mimeType: file.type,
+          isAnimated: false,
+          fileSize: file.size,
+        },
+        meta: {},
+      }
+    })
+
     const { snapshot, sha } = await loadCanvasFromGitHub()
     shaRef.current = sha
     if (snapshot && Object.keys(snapshot).length > 0) {
@@ -69,7 +104,6 @@ export default function App() {
     setSaving(true)
     const snapshot = editorRef.current.getSnapshot()
     await saveCanvasToGitHub(snapshot, shaRef.current)
-    // Refresh SHA after save
     const { sha } = await loadCanvasFromGitHub()
     shaRef.current = sha
     setSaving(false)
@@ -83,7 +117,6 @@ export default function App() {
         onMount={handleMount}
       />
 
-      {/* Edit button */}
       {!authed && !showLogin && (
         <button
           onClick={() => setShowLogin(true)}
@@ -98,7 +131,6 @@ export default function App() {
         </button>
       )}
 
-      {/* Save button */}
       {authed && (
         <button
           onClick={handleSave}
@@ -115,7 +147,6 @@ export default function App() {
         </button>
       )}
 
-      {/* Login overlay */}
       {showLogin && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 1000,
