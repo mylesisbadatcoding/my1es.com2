@@ -2,7 +2,7 @@
 
 A personal blog built on an infinite canvas using the [tldraw SDK](https://tldraw.dev).
 
-Visitors can pan and zoom freely. Only I can edit.
+Visitors can pan and zoom freely. Only I can edit. (fr though please dont edit things i havent made a secure login yet)
 
 **Live site:** [my1es.com](https://my1es.com)
 
