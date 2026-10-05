@@ -63,5 +63,4 @@ To publish canvas changes:
 
 ## Build log
 
-This project was built live with Claude. Full conversation here:
-[https://claude.ai/share/4dde3d07-384c-459e-bba4-5280e3f25742](https://claude.ai/share/4dde3d07-384c-459e-bba4-5280e3f25742)
+This project was built with A LOT of help from Claude. I have a very limited grasp of anything. I'm dumb.
